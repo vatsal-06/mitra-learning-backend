@@ -34,15 +34,27 @@ router.get("/daily", async (req, res) => {
 });
 
 /**
- * POST /habit/complete
+ * POST /habit/complete  ✅ BULLETPROOF
  */
-router.post("/complete", (req, res) => {
+router.post("/complete", async (req, res) => {
   try {
     const { user_id, habit_id } = req.body;
 
-    const habit = dailyHabits.get(habit_id);
+    if (!user_id || !habit_id) {
+      return res.status(400).json({ error: "Missing fields" });
+    }
+
+    let habit = dailyHabits.get(habit_id);
+
+    // 🔥 AUTO-RECOVER IF MEMORY LOST
     if (!habit) {
-      return res.status(400).json({ error: "Habit not found" });
+      const [date, profession, language] = habit_id.split("_");
+
+      habit = await getDailyHabit({
+        userId: user_id,
+        profession,
+        language,
+      });
     }
 
     const result = completeHabit({ userId: user_id, habit });
