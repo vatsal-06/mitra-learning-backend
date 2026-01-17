@@ -1,4 +1,4 @@
-import openai from "../config/openai.js";
+import { getOpenAI } from "../config/openai.js";
 import { dailyHabits, userStats } from "../db/store.js";
 
 /**
@@ -39,10 +39,13 @@ export async function getDailyHabit({ userId, profession, language }) {
   const today = new Date().toISOString().split("T")[0];
   const key = getHabitKey(today, profession, language);
 
-  // Return cached habit
+  // 🔁 Return cached habit if exists
   if (dailyHabits.has(key)) {
     return dailyHabits.get(key);
   }
+
+  // ✅ CREATE OPENAI CLIENT HERE (SAFE)
+  const openai = getOpenAI();
 
   const prompt = buildHabitPrompt({ profession, language });
 

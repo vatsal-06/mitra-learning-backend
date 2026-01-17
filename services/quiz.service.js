@@ -1,4 +1,4 @@
-import openai from "../config/openai.js";
+import { getOpenAI } from "../config/openai.js";
 import { dailyQuizzes } from "../db/store.js";
 
 /**
@@ -62,7 +62,7 @@ JSON FORMAT:
 }
 
 /**
- * MAIN GENERATOR
+ * MAIN QUIZ GENERATOR
  */
 export async function generateQuiz({
   quizType,
@@ -73,10 +73,13 @@ export async function generateQuiz({
   const today = new Date().toISOString().split("T")[0];
   const key = getQuizKey(today, quizType, profession, language);
 
-  // 🔁 Return cached quiz if exists
+  // 🔁 Return cached quiz if already generated today
   if (dailyQuizzes.has(key)) {
     return dailyQuizzes.get(key);
   }
+
+  // ✅ OpenAI is INITIALIZED ONLY HERE (SAFE)
+  const openai = getOpenAI();
 
   const prompt = buildQuizPrompt({
     quizType,
@@ -96,14 +99,16 @@ export async function generateQuiz({
 
   const quiz = {
     quiz_id: key,
-    questions: parsed.questions.map(q => ({
+    questions: parsed.questions.map((q) => ({
       id: q.id,
       question: q.question,
       options: q.options,
-      correct_answer: q.correct_answer, // stored server-side
+      correct_answer: q.correct_answer, // stored server-side only
     })),
   };
 
+  // Cache quiz for the day
   dailyQuizzes.set(key, quiz);
+
   return quiz;
 }

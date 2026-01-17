@@ -1,5 +1,9 @@
-import openai from "../config/openai.js";
-import { dailyQuizzes, userStats, userQuizAttempts } from "../db/store.js";
+import { getOpenAI } from "../config/openai.js";
+import {
+  dailyQuizzes,
+  userStats,
+  userQuizAttempts,
+} from "../db/store.js";
 
 /**
  * Convert score to XP (system-controlled)
@@ -49,14 +53,14 @@ export async function submitQuiz({ userId, quizId, answers }) {
 You are an evaluator.
 
 Quiz questions with correct answers:
-${quiz.questions.map(q =>
-  `Q${q.id}: correct=${q.correct_answer}`
-).join("\n")}
+${quiz.questions
+  .map((q) => `Q${q.id}: correct=${q.correct_answer}`)
+  .join("\n")}
 
 User answers:
-${Object.entries(answers).map(
-  ([id, ans]) => `Q${id}: ${ans}`
-).join("\n")}
+${Object.entries(answers)
+  .map(([id, ans]) => `Q${id}: ${ans}`)
+  .join("\n")}
 
 Return STRICT JSON:
 {
@@ -66,6 +70,9 @@ Return STRICT JSON:
   "explanations": ["...", "..."]
 }
 `;
+
+  // ✅ CREATE OPENAI CLIENT ONLY HERE
+  const openai = getOpenAI();
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -77,17 +84,17 @@ Return STRICT JSON:
     response.choices[0].message.content
   );
 
-    let stats = userStats.get(userId);
-
-    if (!stats) {
-    // Auto-initialize (hackathon-safe)
+  // Auto-init stats if missing
+  let stats = userStats.get(userId);
+  if (!stats) {
     stats = {
-        xp: 0,
-        streak: 0,
-        last_active_date: null,
+      xp: 0,
+      streak: 0,
+      last_active_date: null,
     };
     userStats.set(userId, stats);
-    }
+  }
+
   const xp = calculateXP(evaluation.score, evaluation.out_of);
 
   stats.xp += xp;
