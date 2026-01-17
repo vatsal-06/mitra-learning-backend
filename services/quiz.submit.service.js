@@ -77,7 +77,17 @@ Return STRICT JSON:
     response.choices[0].message.content
   );
 
-  const stats = userStats.get(userId);
+    let stats = userStats.get(userId);
+
+    if (!stats) {
+    // Auto-initialize (hackathon-safe)
+    stats = {
+        xp: 0,
+        streak: 0,
+        last_active_date: null,
+    };
+    userStats.set(userId, stats);
+    }
   const xp = calculateXP(evaluation.score, evaluation.out_of);
 
   stats.xp += xp;
